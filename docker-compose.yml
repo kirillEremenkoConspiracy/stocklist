@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: stocklist-db
+    environment:
+      POSTGRES_DB: stocklist
+      POSTGRES_USER: stocklist
+      POSTGRES_PASSWORD: stocklist
+    ports:
+      - "5433:5432"
+    volumes:
+      - stocklist_pgdata:/var/lib/postgresql/data
+
+volumes:
+  stocklist_pgdata:

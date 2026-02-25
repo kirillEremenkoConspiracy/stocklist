@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Склады</title>
+</head>
+<body>
+<h1>Склады</h1>
+
+<ul>
+    <li th:each="w : ${warehouses}">
+        <b th:text="${w.name}"></b>
+        <span th:if="${w.address != null}" th:text="' — ' + ${w.address}"></span>
+    </li>
+</ul>
+
+<p><a href="/">На главную</a></p>
+</body>
+</html>
