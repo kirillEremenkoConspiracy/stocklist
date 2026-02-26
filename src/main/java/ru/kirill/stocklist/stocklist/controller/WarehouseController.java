@@ -21,13 +21,15 @@ public class WarehouseController {
 
     @GetMapping("/warehouses")
     public String list(Model model) {
+        model.addAttribute("activePage", "warehouses");
         model.addAttribute("warehouses", warehouseRepository.findAll());
         return "warehouses";
     }
 
     //GET
     @GetMapping("/warehouses/new")
-    public String newWarehouse(Model model){
+    public String newWarehouse(Model model) {
+        model.addAttribute("activePage", "warehouses");
         model.addAttribute("warehouseForm", new WarehouseForm());
         return "warehouse-form";
     }

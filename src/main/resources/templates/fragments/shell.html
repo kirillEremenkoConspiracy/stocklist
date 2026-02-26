@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" th:fragment="shell(title, content)">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="${title}">Stocklist</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">🏠</div>
+      <div class="brand-text">StockList</div>
+    </div>
+
+    <nav class="menu">
+      
+      
+      <a class="menu-item"
+    th:href="@{/}"
+    th:classappend="${activePage} == 'home' ? ' active' : ''">
+  Главная
+</a>
+
+<a class="menu-item"
+   th:href="@{/warehouses}"
+   th:classappend="${activePage} == 'warehouses' ? ' active' : ''">
+  Склады
+</a>
+    </nav>
+  </aside>
+
+  
+  <div class="main">
+    <header class="topbar">
+      <div class="search">
+        <input type="text" placeholder="Поиск..." disabled>
+      </div>
+      <div class="top-icons">
+        <span class="icon">🔔</span>
+        <span class="icon">⚙️</span>
+        <span class="avatar">К</span>
+      </div>
+    </header>
+
+    <main class="content">
+      <div th:replace="${content}"></div>
+    </main>
+  </div>
+</div>
+
+</body>
+</html>

@@ -3,27 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <title>Новый склад</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
+    <header class="header">
+  <nav class="nav">
+    <a href="/">Главная</a>
+    <a href="/warehouses">Склады</a>
+  </nav>
+</header>
+
+<main class="container">
 
 <h1>Добавить склад</h1>
 
 <form method="post" action="/warehouses" th:object="${warehouseForm}">
-    <div>
-        <label>Название</label>
-        <input type="text" th:field="*{name}">
-        <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
-    </div>
 
-    <div>
-        <label>Адрес</label>
-        <input type="text" th:field="*{address}">
-        <div th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></div>
-    </div>
+  <div class="form-row">
+    <label>Название</label>
+    <input type="text" th:field="*{name}">
+    <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="field-error"></div>
+  </div>
 
+  <div class="form-row">
+    <label>Адрес</label>
+    <input type="text" th:field="*{address}">
+    <div th:if="${#fields.hasErrors('address')}" th:errors="*{address}" class="field-error"></div>
+  </div>
+
+  <!-- ВОТ ТУТ блок actions: прямо перед закрывающим </form> -->
+  <div class="actions">
     <button type="submit">Сохранить</button>
     <a href="/warehouses">Отмена</a>
+  </div>
+
 </form>
 
+</main>
 </body>
 </html>

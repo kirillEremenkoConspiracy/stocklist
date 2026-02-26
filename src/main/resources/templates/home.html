@@ -1,12 +1,32 @@
 <!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>stocklist</title>
-</head>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/shell :: shell('Главная', ~{::content})}">
 <body>
-<h1>stocklist</h1>
-<p>Работает</p>
-<p><a href="/warehouses">Склады</a></p>
+
+<div th:fragment="content">
+  <div class="page-title">Главная</div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head">
+        <span class="badge">Статус</span>
+      </div>
+      <div class="card-body">
+        <p class="card-title">stocklist</p>
+        <p class="card-sub">Работает ✅</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="badge">Быстрые ссылки</span>
+      </div>
+      <div class="card-body">
+        <a class="btn" th:href="@{/warehouses}">Перейти к складам</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

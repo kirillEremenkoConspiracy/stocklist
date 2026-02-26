@@ -1,21 +1,33 @@
 <!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Склады</title>
-</head>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/shell :: shell('Склады', ~{::content})}">
 <body>
-<h1>Склады</h1>
 
-<a href="/warehouses/new">Добавить склад</a>
+<div th:fragment="content">
+  <div class="page-title">Склады</div>
 
-<ul>
-    <li th:each="w : ${warehouses}">
-        <b th:text="${w.name}"></b>
-        <span th:if="${w.address != null}" th:text="' — ' + ${w.address}"></span>
-    </li>
-</ul>
+  <p>
+    <a class="btn" th:href="@{/warehouses/new}">+ Добавить склад</a>
+  </p>
 
-<p><a href="/">На главную</a></p>
+  <div class="grid">
+    <div class="card" th:each="w : ${warehouses}">
+      <div class="card-head">
+        <span class="badge">Склад</span>
+        <span class="badge" th:text="${w.id}">#</span>
+      </div>
+
+      <div class="card-body">
+        <p class="card-title" th:text="${w.name}">Название</p>
+        <p class="card-sub" th:text="${w.address != null ? w.address : 'Адрес не указан'}">Адрес</p>
+
+        <!-- пока заглушки, позже будут реальные метрики -->
+        <div class="small-row"><span>Товары:</span><span>—</span></div>
+        <div class="small-row"><span>Свободно:</span><span>—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
