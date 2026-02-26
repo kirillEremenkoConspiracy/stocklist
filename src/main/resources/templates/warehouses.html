@@ -7,6 +7,8 @@
 <body>
 <h1>Склады</h1>
 
+<a href="/warehouses/new">Добавить склад</a>
+
 <ul>
     <li th:each="w : ${warehouses}">
         <b th:text="${w.name}"></b>
