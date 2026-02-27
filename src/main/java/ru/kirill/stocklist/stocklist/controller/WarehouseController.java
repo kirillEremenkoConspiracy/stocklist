@@ -18,18 +18,24 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import ru.kirill.stocklist.stocklist.repository.InventoryBalanceRepository;
 
 
 @Controller
 public class WarehouseController {
 
+    private final InventoryBalanceRepository inventoryBalanceRepository;
     private final WarehouseRepository warehouseRepository;
     private final CategoryRepository categoryRepository;
 
-    public WarehouseController(WarehouseRepository warehouseRepository, CategoryRepository categoryRepository) {
+    public WarehouseController(InventoryBalanceRepository inventoryBalanceRepository,
+                               WarehouseRepository warehouseRepository,
+                               CategoryRepository categoryRepository) {
+        this.inventoryBalanceRepository = inventoryBalanceRepository;
         this.warehouseRepository = warehouseRepository;
         this.categoryRepository = categoryRepository;
     }
+
 
     @GetMapping("/warehouses")
     public String list(Model model) {
@@ -161,11 +167,14 @@ public class WarehouseController {
         model.addAttribute("categoryForm", new CategoryForm());
 
         model.addAttribute("breadcrumb", buildBreadcrumb(category));
+        //загрузка товаров текущей папки
+        model.addAttribute("items",
+                inventoryBalanceRepository.findAllByCategoryIdOrderByIdDesc(cid));
         return "category-view";
     }
 
     //POST создать подпапку внутри папки
-    @Transactional(readOnly = true)
+    @Transactional
     @PostMapping("/warehouses/{wid}/categories/{cid}/categories")
     public String createSubCategory(@PathVariable Long wid,
                                     @PathVariable Long cid,
