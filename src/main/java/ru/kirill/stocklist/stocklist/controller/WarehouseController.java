@@ -14,6 +14,10 @@ import org.springframework.validation.BindingResult;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.PathVariable;
 import ru.kirill.stocklist.stocklist.domain.CategoryRepository;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 
 @Controller
@@ -128,5 +132,107 @@ public class WarehouseController {
         }
 
         return "redirect:/warehouses/" + id;
+    }
+
+    //GET открыть папку
+    @Transactional(readOnly = true)
+    @GetMapping("/warehouses/{wid}/categories/{cid}")
+    public String viewCategory(@PathVariable Long wid,
+                               @PathVariable Long cid,
+                               Model model) {
+        Warehouse warehouse = warehouseRepository.findById(wid)
+                .orElseThrow(() -> new IllegalArgumentException("Warehouse not found: " + wid));
+
+        Category category = categoryRepository.findById(cid)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + cid));
+
+        //папка должна принадлежать этому складу
+        if(!category.getWarehouse().getId().equals(wid)){
+            throw new IllegalArgumentException("Category " + cid + " is not in warehouse " + wid);
+        }
+
+        model.addAttribute("activePage", "warehouses");
+        model.addAttribute("warehouse", warehouse);
+        model.addAttribute("category", category);
+
+        //показать подпапки в папке
+        model.addAttribute("categories", categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
+
+        model.addAttribute("categoryForm", new CategoryForm());
+
+        model.addAttribute("breadcrumb", buildBreadcrumb(category));
+        return "category-view";
+    }
+
+    //POST создать подпапку внутри папки
+    @Transactional(readOnly = true)
+    @PostMapping("/warehouses/{wid}/categories/{cid}/categories")
+    public String createSubCategory(@PathVariable Long wid,
+                                    @PathVariable Long cid,
+                                    @Valid @ModelAttribute("categoryForm") CategoryForm form,
+                                    BindingResult bindingResult,
+                                    Model model){
+        Warehouse warehouse = warehouseRepository.findById(wid)
+                .orElseThrow(() -> new IllegalArgumentException("Warehouse not found: " + wid));
+
+        Category parent = categoryRepository.findById(cid)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + cid));
+
+        if (!parent.getWarehouse().getId().equals(wid)) {
+            throw new IllegalArgumentException("Category " + cid + " is not in warehouse " + wid);
+        }
+
+        //Проверка валидации и возврат страницы с ошибкой
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("activePage", "warehouses");
+            model.addAttribute("warehouse", warehouse);
+            model.addAttribute("category", parent);
+            model.addAttribute("categories",
+                    categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
+            model.addAttribute("breadcrumb", buildBreadcrumb(parent));
+            return "category-view";
+        }
+
+        String name = form.getName().trim();
+
+        //запрещаем дублирование
+        if (categoryRepository.existsByWarehouseIdAndParentIdAndNameIgnoreCase(wid, cid, name)) {
+            bindingResult.rejectValue("name", "duplicate", "Такая папка уже есть в этом разделе");
+            model.addAttribute("activePage", "warehouses");
+            model.addAttribute("warehouse", warehouse);
+            model.addAttribute("category", parent);
+            model.addAttribute("categories",
+                    categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
+            model.addAttribute("breadcrumb", buildBreadcrumb(parent));
+            return "category-view";
+        }
+
+        //гонка молния макуин кчау-кчау молния я молния
+        //ладно оке это защита от гонки, ну я надеюсь что защитит
+        try {
+            categoryRepository.save(new Category(warehouse, parent, name));
+        } catch (DataIntegrityViolationException e) {
+            bindingResult.rejectValue("name", "duplicate", "Такая папка уже есть в этом разделе");
+            model.addAttribute("activePage", "warehouses");
+            model.addAttribute("warehouse", warehouse);
+            model.addAttribute("category", parent);
+            model.addAttribute("categories",
+                    categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
+            model.addAttribute("breadcrumb", buildBreadcrumb(parent));
+            return "category-view";
+        }
+
+        return "redirect:/warehouses/" + wid + "/categories/" + cid;
+    }
+
+    private List<Category> buildBreadcrumb(Category current){
+        List<Category> path = new ArrayList<>();
+        Category c = current;
+        while (c != null) {
+            path.add(c);
+            c = c.getParent();
+        }
+        Collections.reverse(path);
+        return path;
     }
 }

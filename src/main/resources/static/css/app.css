@@ -232,7 +232,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
   margin-top: 14px;
 }
 
-/* buttons polishing */
+
 button{
   padding: 10px 14px;
   border-radius: 12px;
@@ -251,3 +251,161 @@ button:hover{ filter: brightness(0.96); }
   font-weight: 700;
 }
 .btn.btn-secondary:hover{ filter: brightness(0.99); }
+
+/* === Breadcrumbs (clean) === */
+.breadcrumbs{
+  max-width: 100%;
+  overflow: visible;           /* dropdown может вылезать вниз */
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.breadcrumbs-scroll{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+
+  max-width: 100%;
+  min-width: 0;
+
+  
+  overflow: visible;
+}
+
+.breadcrumbs-scroll::-webkit-scrollbar { height: 8px; }
+.breadcrumbs-scroll::-webkit-scrollbar-thumb {
+  background: rgba(47,111,235,0.25);
+  border-radius: 999px;
+}
+.breadcrumbs-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.page-header{ align-items: center; }
+.page-header > div:first-child{ min-width: 0; }
+.card-sub{ min-width: 0; }
+
+.crumb{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-decoration:none;
+  color: var(--text);
+  border: 1px solid transparent;
+
+  
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crumb:hover{
+  background: #f3f7ff;
+  border-color: #cfe0ff;
+  text-decoration: none;
+}
+.crumb.current{
+  background: rgba(47,111,235,0.12);
+  border-color: rgba(47,111,235,0.25);
+  font-weight: 800;
+}
+.sep{
+  color: var(--muted);
+  user-select: none;
+}
+
+/* Хлебные крошки */
+.crumb-menu{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  z-index: 10000;
+}
+.crumb-menu > summary{
+  list-style: none;
+  cursor: pointer;
+}
+.crumb-menu > summary::-webkit-details-marker{ display:none; }
+
+.crumb.ellipsis{
+  cursor:pointer;
+  user-select:none;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #cfe0ff;
+}
+
+/* ВАЖНО: меню скрыто пока details не open */
+.crumb-menu .menu{
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+
+  min-width: 260px;
+  max-width: 320px;
+  max-height: 260px;
+  overflow-y: auto;
+
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.15);
+  padding: 8px;
+
+  z-index: 10001;
+}
+
+/* Показываем меню только когда details открыт */
+.crumb-menu[open] .menu{
+  display: flex;
+  flex-direction: column-reverse; /* как в винде */
+}
+
+.menu-item{
+  display:block;
+  padding: 10px 10px;
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration:none;
+  border: 1px solid transparent;
+}
+.menu-item:hover{
+  background:#f3f7ff;
+  border-color:#cfe0ff;
+}
+
+
+/* FIX: make ellipsis clickable no matter what */
+.crumb-menu,
+.crumb-menu > summary{
+  pointer-events: auto;
+}
+
+.crumb-menu > summary{
+  cursor: pointer;
+  position: relative;
+  z-index: 20000; /* выше соседей */
+}
+
+/* sometimes scroll containers can steal clicks */
+.breadcrumbs-scroll{
+  position: relative;
+  z-index: 1;
+}
+
+.crumb-menu{
+  z-index: 20000;
+}
+
+.crumb-menu.open .menu{
+  display: flex;
+  flex-direction: column-reverse;
+}

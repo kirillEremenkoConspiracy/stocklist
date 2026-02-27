@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/shell :: shell(${category.name}, ~{::content})}">
+<body>
+
+<div th:fragment="content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title" th:text="${category.name}">Папка</div>
+      <div class="card-sub">
+  <nav class="breadcrumbs">
+  <div class="breadcrumbs-scroll">
+    <!-- склад всегда показываем -->
+    <a class="crumb" th:href="@{/warehouses/{id}(id=${warehouse.id})}" th:text="${warehouse.name}">Склад</a>
+    <span class="sep">→</span>
+
+    <span class="crumb-menu" th:if="${breadcrumb.size() > 4}">
+  <button type="button" class="crumb ellipsis" onclick="toggleCrumbMenu(this)">…</button>
+
+  <div class="menu" aria-hidden="true">
+    <th:block th:each="c, st : ${breadcrumb}">
+      <a class="menu-item"
+         th:if="${st.index < breadcrumb.size() - 3}"
+         th:href="@{/warehouses/{wid}/categories/{cid}(wid=${warehouse.id}, cid=${c.id})}"
+         th:text="${c.name}">
+        Категория
+      </a>
+    </th:block>
+  </div>
+</span>
+
+    <!-- показываем все -->
+    <span th:if="${breadcrumb.size() <= 4}"
+          th:each="c, st : ${breadcrumb}">
+      <a th:if="${!st.last}"
+         class="crumb"
+         th:href="@{/warehouses/{wid}/categories/{cid}(wid=${warehouse.id}, cid=${c.id})}"
+         th:text="${c.name}">Категория</a>
+
+      <span th:if="${st.last}" class="crumb current" th:text="${c.name}">Текущая</span>
+
+      <span th:if="${!st.last}" class="sep">→</span>
+    </span>
+
+    <!-- всегда показываем последние 3 элемента -->
+    <span th:if="${breadcrumb.size() > 4}"
+          th:each="c, st : ${breadcrumb}">
+      <span th:if="${st.index >= breadcrumb.size() - 3}">
+        <span class="sep">→</span>
+
+        <a th:if="${st.index < breadcrumb.size() - 1}"
+           class="crumb"
+           th:href="@{/warehouses/{wid}/categories/{cid}(wid=${warehouse.id}, cid=${c.id})}"
+           th:text="${c.name}">Категория</a>
+
+        <span th:if="${st.index == breadcrumb.size() - 1}"
+              class="crumb current"
+              th:text="${c.name}">Текущая</span>
+      </span>
+    </span>
+  </div>
+</nav>
+</div>
+    </div>
+
+    <div class="page-actions">
+      <a class="btn btn-secondary" href="javascript:void(0)" title="Скоро">+ Добавить товар</a>
+
+      <button type="button" class="btn"
+              onclick="document.getElementById('newFolderModal').classList.add('is-open')">
+        + Добавить папку
+      </button>
+    </div>
+  </div>
+
+  <!-- Подпапки -->
+  <div class="grid">
+    <a class="card-link"
+       th:each="c : ${categories}"
+       th:href="@{/warehouses/{wid}/categories/{cid}(wid=${warehouse.id}, cid=${c.id})}">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge">Папка</span>
+          <span class="badge" th:text="${c.id}">#</span>
+        </div>
+        <div class="card-body">
+          <p class="card-title" th:text="${c.name}">Категория</p>
+          <p class="card-sub">Открыть папку</p>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div th:if="${#lists.isEmpty(categories)}" class="card" style="margin-top:14px;">
+    <div class="card-body">
+      <p class="card-sub">Подпапок пока нет. Нажми “Добавить папку” справа сверху.</p>
+    </div>
+  </div>
+
+  <!-- окошко новая подпапка -->
+  <div class="modal" id="newFolderModal" aria-hidden="true">
+    <div class="modal-backdrop"
+         onclick="document.getElementById('newFolderModal').classList.remove('is-open')"></div>
+
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="newFolderTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="newFolderTitle">Новая папка</div>
+
+        <button type="button" class="modal-close"
+                onclick="document.getElementById('newFolderModal').classList.remove('is-open')"
+                aria-label="Закрыть">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <form method="post"
+              th:action="@{/warehouses/{wid}/categories/{cid}/categories(wid=${warehouse.id}, cid=${category.id})}"
+              th:object="${categoryForm}">
+          <div class="form-row">
+            <label>Название</label>
+            <input type="text" th:field="*{name}" placeholder="Например: Поршни">
+            <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="field-error"></div>
+          </div>
+
+          <div class="actions">
+            <button type="submit">Создать</button>
+            <button type="button" class="btn btn-secondary"
+                    onclick="document.getElementById('newFolderModal').classList.remove('is-open')">
+              Отмена
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  function toggleCrumbMenu(btn) {
+    const wrap = btn.closest('.crumb-menu');
+    const menu = wrap.querySelector('.menu');
+    const isOpen = wrap.classList.toggle('open');
+    menu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  }
+
+  // закрывать меню при клике вне
+  document.addEventListener('click', (e) => {
+    document.querySelectorAll('.crumb-menu.open').forEach(wrap => {
+      if (!wrap.contains(e.target)) {
+        wrap.classList.remove('open');
+        const menu = wrap.querySelector('.menu');
+        if (menu) menu.setAttribute('aria-hidden', 'true');
+      }
+    });
+  });
+</script>
+
+</div>
+
+
+
+</body>
+</html>
