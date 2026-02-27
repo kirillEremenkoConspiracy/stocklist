@@ -5,6 +5,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import ru.kirill.stocklist.stocklist.domain.Category;
+import ru.kirill.stocklist.stocklist.domain.CategoryForm;
 import ru.kirill.stocklist.stocklist.domain.Warehouse;
 import ru.kirill.stocklist.stocklist.repository.WarehouseRepository;
 import jakarta.validation.Valid;
@@ -81,9 +83,50 @@ public class WarehouseController {
 
         model.addAttribute("activePage", "warehouses");
         model.addAttribute("warehouse", warehouse);
-
+        model.addAttribute("categoryForm", new CategoryForm());
         model.addAttribute("categories", categoryRepository.findByWarehouseIdAndParentIsNullOrderByNameAsc(id));
 
         return "warehouse-view";
+    }
+
+    @PostMapping("/warehouses/{id}/categories")
+    public String createRootCategory(@PathVariable Long id, @Valid @ModelAttribute("categoryForm")CategoryForm form,
+                                     BindingResult bindingResult, Model model){
+        Warehouse warehouse = warehouseRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Warehouse not found: " + id));
+
+        //Остаемся на странице если валидация не прошла
+        if(bindingResult.hasErrors()){
+            model.addAttribute("activePage", "warehouses");
+            model.addAttribute("warehouse", warehouse);
+            model.addAttribute("categories", categoryRepository.findByWarehouseIdAndParentIsNullOrderByNameAsc(id));
+
+            return "warehouse-view";
+        }
+
+        String name = form.getName().trim();
+
+        //проверка в корне
+        if(categoryRepository.existsByWarehouseIdAndParentIsNullAndNameIgnoreCase(id, name)){
+            bindingResult.rejectValue("name", "duplicate", "Такая папка уже есть в этом разделе");
+            model.addAttribute("activePage", "warehouses");
+            model.addAttribute("warehouse", warehouse);
+            model.addAttribute("categories", categoryRepository.findByWarehouseIdAndParentIsNullOrderByNameAsc(id));
+
+            return "warehouse-view";
+        }
+
+        try{
+            categoryRepository.save(new Category(warehouse, null, name));
+        } catch (DataIntegrityViolationException e){
+            //от гонки
+            bindingResult.rejectValue("name", "duplicate", "Такая папка уже есть в этом разделе");
+            model.addAttribute("activePage", "warehouses");
+            model.addAttribute("warehouse", warehouse);
+            model.addAttribute("categories", categoryRepository.findByWarehouseIdAndParentIsNullOrderByNameAsc(id));
+
+            return "warehouse-view";
+        }
+
+        return "redirect:/warehouses/" + id;
     }
 }

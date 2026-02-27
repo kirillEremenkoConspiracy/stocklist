@@ -5,27 +5,76 @@
 
 <div th:fragment="content">
 
-  <div class="page-title" th:text="${warehouse.name}">Склад</div>
+  <div class="page-header">
+    <div class="page-title" th:text="${warehouse.name}">Склад</div>
 
-  
-  <div class="grid">
-    <div class="card" th:each="c : ${categories}">
-      <div class="card-head">
-        <span class="badge">Папка</span>
-        <span class="badge" th:text="${c.id}">#</span>
-      </div>
+    <div class="page-actions">
+      <a class="btn btn-secondary" href="javascript:void(0)" title="Скоро">+ Добавить товар</a>
 
-      <div class="card-body">
-        <p class="card-title" th:text="${c.name}">Категория</p>
-        <p class="card-sub">Скоро: заход внутрь папки</p>
-      </div>
+      <button type="button" class="btn"
+              onclick="document.getElementById('newFolderModal').classList.add('is-open')">
+        + Добавить папку
+      </button>
     </div>
   </div>
 
-  
+  <div class="grid">
+    <a class="card-link"
+       th:each="c : ${categories}"
+       th:href="@{/warehouses/{wid}/categories/{cid}(wid=${warehouse.id}, cid=${c.id})}">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge">Папка</span>
+          <span class="badge" th:text="${c.id}">#</span>
+        </div>
+
+        <div class="card-body">
+          <p class="card-title" th:text="${c.name}">Категория</p>
+          <p class="card-sub">Открыть папку</p>
+        </div>
+      </div>
+    </a>
+  </div>
+
   <div th:if="${#lists.isEmpty(categories)}" class="card" style="margin-top:14px;">
     <div class="card-body">
-      <p class="card-sub">Папок пока нет. Добавим форму создания на следующем шаге.</p>
+      <p class="card-sub">Папок пока нет. Нажми “Добавить папку” справа сверху.</p>
+    </div>
+  </div>
+
+  <!-- ОДНА модалка, без вложенности и без :target -->
+  <div class="modal" id="newFolderModal" aria-hidden="true">
+    <div class="modal-backdrop"
+         onclick="document.getElementById('newFolderModal').classList.remove('is-open')"></div>
+
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="newFolderTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="newFolderTitle">Новая папка</div>
+
+        <button type="button" class="modal-close"
+                onclick="document.getElementById('newFolderModal').classList.remove('is-open')"
+                aria-label="Закрыть">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <form method="post"
+              th:action="@{/warehouses/{id}/categories(id=${warehouse.id})}"
+              th:object="${categoryForm}">
+          <div class="form-row">
+            <label>Название</label>
+            <input type="text" th:field="*{name}" placeholder="Например: Двигатель">
+            <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="field-error"></div>
+          </div>
+
+          <div class="actions">
+            <button type="submit">Создать</button>
+            <button type="button" class="btn btn-secondary"
+                    onclick="document.getElementById('newFolderModal').classList.remove('is-open')">
+              Отмена
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
