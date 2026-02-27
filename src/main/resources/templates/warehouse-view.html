@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/shell :: shell(${warehouse.name}, ~{::content})}">
+<body>
+
+<div th:fragment="content">
+
+  <div class="page-title" th:text="${warehouse.name}">Склад</div>
+
+  
+  <div class="grid">
+    <div class="card" th:each="c : ${categories}">
+      <div class="card-head">
+        <span class="badge">Папка</span>
+        <span class="badge" th:text="${c.id}">#</span>
+      </div>
+
+      <div class="card-body">
+        <p class="card-title" th:text="${c.name}">Категория</p>
+        <p class="card-sub">Скоро: заход внутрь папки</p>
+      </div>
+    </div>
+  </div>
+
+  
+  <div th:if="${#lists.isEmpty(categories)}" class="card" style="margin-top:14px;">
+    <div class="card-body">
+      <p class="card-sub">Папок пока нет. Добавим форму создания на следующем шаге.</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

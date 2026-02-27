@@ -9,14 +9,20 @@ import ru.kirill.stocklist.stocklist.domain.Warehouse;
 import ru.kirill.stocklist.stocklist.repository.WarehouseRepository;
 import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.web.bind.annotation.PathVariable;
+import ru.kirill.stocklist.stocklist.domain.CategoryRepository;
+
 
 @Controller
 public class WarehouseController {
 
     private final WarehouseRepository warehouseRepository;
+    private final CategoryRepository categoryRepository;
 
-    public WarehouseController(WarehouseRepository warehouseRepository) {
+    public WarehouseController(WarehouseRepository warehouseRepository, CategoryRepository categoryRepository) {
         this.warehouseRepository = warehouseRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @GetMapping("/warehouses")
@@ -26,7 +32,6 @@ public class WarehouseController {
         return "warehouses";
     }
 
-    //GET
     @GetMapping("/warehouses/new")
     public String newWarehouse(Model model) {
         model.addAttribute("activePage", "warehouses");
@@ -34,7 +39,6 @@ public class WarehouseController {
         return "warehouse-form";
     }
 
-    //POST создание склада (ловит POST запросы)
     @PostMapping("/warehouses")
     public String createWarehouse(
             @Valid @ModelAttribute("warehouseForm")
@@ -68,5 +72,18 @@ public class WarehouseController {
         }
         String t = s.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    @GetMapping("/warehouses/{id}")
+    public String viewWarehouse(@PathVariable Long id, Model model){
+        Warehouse warehouse = warehouseRepository.findById(id)//УБРАТЬ ЛЯМБДУ!!!
+                .orElseThrow(() -> new IllegalArgumentException("Warehouse not found: " + id));
+
+        model.addAttribute("activePage", "warehouses");
+        model.addAttribute("warehouse", warehouse);
+
+        model.addAttribute("categories", categoryRepository.findByWarehouseIdAndParentIsNullOrderByNameAsc(id));
+
+        return "warehouse-view";
     }
 }
