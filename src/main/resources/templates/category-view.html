@@ -3,7 +3,8 @@
       th:replace="~{fragments/shell :: shell(${category.name}, ~{::content})}">
 <body>
 
-<div th:fragment="content">
+<div th:fragment="content"
+     th:with="productCreateForm=${productCreateForm} ?: ${new ru.kirill.stocklist.stocklist.controller.ProductCreateForm()}">
 
   <div class="page-header">
     <div>
@@ -65,13 +66,35 @@
     </div>
 
     <div class="page-actions">
-      <a class="btn btn-secondary" href="javascript:void(0)" title="Скоро">+ Добавить товар</a>
+  <button type="button" class="btn btn-secondary"
+          onclick="document.getElementById('newProductModal').classList.add('is-open')">
+    + Добавить товар
+  </button>
 
-      <button type="button" class="btn"
-              onclick="document.getElementById('newFolderModal').classList.add('is-open')">
-        + Добавить папку
-      </button>
-    </div>
+  <button type="button" class="btn"
+          onclick="document.getElementById('newFolderModal').classList.add('is-open')">
+    + Добавить папку
+  </button>
+</div>
+  </div>
+
+
+  <!-- Подпапки -->
+  <div class="grid">
+    <a class="card-link"
+       th:each="c : ${categories}"
+       th:href="@{/warehouses/{wid}/categories/{cid}(wid=${warehouse.id}, cid=${c.id})}">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge">Папка</span>
+          <span class="badge" th:text="${c.id}">#</span>
+        </div>
+        <div class="card-body">
+          <p class="card-title" th:text="${c.name}">Категория</p>
+          <p class="card-sub">Открыть папку</p>
+        </div>
+      </div>
+    </a>
   </div>
 
   <!-- Товары в текущей папке -->
@@ -150,24 +173,6 @@
   </div>
 </div>
 
-  <!-- Подпапки -->
-  <div class="grid">
-    <a class="card-link"
-       th:each="c : ${categories}"
-       th:href="@{/warehouses/{wid}/categories/{cid}(wid=${warehouse.id}, cid=${c.id})}">
-      <div class="card">
-        <div class="card-head">
-          <span class="badge">Папка</span>
-          <span class="badge" th:text="${c.id}">#</span>
-        </div>
-        <div class="card-body">
-          <p class="card-title" th:text="${c.name}">Категория</p>
-          <p class="card-sub">Открыть папку</p>
-        </div>
-      </div>
-    </a>
-  </div>
-
   <div th:if="${#lists.isEmpty(categories)}" class="card" style="margin-top:14px;">
     <div class="card-body">
       <p class="card-sub">Подпапок пока нет. Нажми “Добавить папку” справа сверху.</p>
@@ -210,24 +215,120 @@
     </div>
   </div>
 
+  <!-- окошко новый товар -->
+<div class="modal" id="newProductModal" aria-hidden="true">
+  <div class="modal-backdrop"
+       onclick="document.getElementById('newProductModal').classList.remove('is-open')"></div>
+
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="newProductTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="newProductTitle">Новый товар</div>
+
+      <button type="button" class="modal-close"
+              onclick="document.getElementById('newProductModal').classList.remove('is-open')"
+              aria-label="Закрыть">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <form method="post"
+            th:action="@{/warehouses/{wid}/categories/{cid}/items(wid=${warehouse.id}, cid=${category.id})}"
+            th:object="${productCreateForm}">
+
+        <div class="form-row">
+          <label>Название</label>
+          <input type="text" th:field="*{name}" placeholder="Например: Поршень 82мм">
+          <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="field-error"></div>
+        </div>
+
+        <div class="form-row" style="margin-top:12px;">
+          <label>Количество</label>
+          <input type="number" min="1" th:field="*{qty}" placeholder="1">
+          <div th:if="${#fields.hasErrors('qty')}" th:errors="*{qty}" class="field-error"></div>
+        </div>
+
+        <!-- Путь -->
+        <div class="form-row" style="margin-top:12px;">
+          <label>Папка</label>
+
+          <div class="card-sub" style="margin-top:6px;">
+            Текущий путь: <span id="pathPreview"
+                               th:text="${category.name}">Текущая</span>
+            <button type="button" class="btn btn-secondary" style="margin-left:10px;"
+                    onclick="togglePathSelect()">Изменить</button>
+          </div>
+
+          <div id="pathSelectWrap" style="display:none; margin-top:10px;">
+            <select th:field="*{categoryId}" onchange="updatePathPreview(this)"
+                    style="width:100%; padding:12px 14px; border-radius:12px; border:1px solid #cfe0ff; background:#f9fbff;">
+              <option value="">(оставить текущую папку)</option>
+              <option th:each="opt : ${categoryOptions}"
+                      th:value="${opt.id}"
+                      th:text="${opt.path}">
+                Путь
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Добавить</button>
+          <button type="button" class="btn btn-secondary"
+                  onclick="document.getElementById('newProductModal').classList.remove('is-open')">
+            Отмена
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<script th:if="${openProductModal}">
+  document.getElementById('newProductModal')?.classList.add('is-open');
+</script>
+
   <script>
   function toggleCrumbMenu(btn) {
-    const wrap = btn.closest('.crumb-menu');
-    const menu = wrap.querySelector('.menu');
-    const isOpen = wrap.classList.toggle('open');
-    menu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    const menu = btn.closest('.crumb-menu');
+    if (!menu) return;
+
+    // закрыть другие открытые меню
+    document.querySelectorAll('.crumb-menu.open').forEach(el => {
+      if (el !== menu) el.classList.remove('open');
+    });
+
+    menu.classList.toggle('open');
   }
 
-  // закрывать меню при клике вне
+  // клик вне меню - закрыть
   document.addEventListener('click', (e) => {
-    document.querySelectorAll('.crumb-menu.open').forEach(wrap => {
-      if (!wrap.contains(e.target)) {
-        wrap.classList.remove('open');
-        const menu = wrap.querySelector('.menu');
-        if (menu) menu.setAttribute('aria-hidden', 'true');
-      }
-    });
+    const inside = e.target.closest('.crumb-menu');
+    if (!inside) {
+      document.querySelectorAll('.crumb-menu.open').forEach(el => el.classList.remove('open'));
+    }
   });
+
+  // Esc - закрыть
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.crumb-menu.open').forEach(el => el.classList.remove('open'));
+    }
+  });
+
+  function togglePathSelect() {
+    const wrap = document.getElementById('pathSelectWrap');
+    if (!wrap) return;
+    wrap.style.display = (wrap.style.display === 'none' || wrap.style.display === '') ? 'block' : 'none';
+  }
+
+  function updatePathPreview(selectEl) {
+    const preview = document.getElementById('pathPreview');
+    if (!preview || !selectEl) return;
+
+    const text = selectEl.options[selectEl.selectedIndex]?.text || '';
+    if (selectEl.value === '' || selectEl.value === 'null') return;
+    preview.textContent = text;
+  }
 </script>
 
 </div>

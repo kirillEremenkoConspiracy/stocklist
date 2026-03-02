@@ -15,13 +15,17 @@ public class Product {
     private String name;
 
     // заглушка под фото
-    @Column(name = "photoKey")
+    @Column(name = "photo_key")
     private String photoKey;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    protected Product(String name){
+    protected Product(){
+
+    }
+
+    public Product(String name){
         this.name = name;
     }
 

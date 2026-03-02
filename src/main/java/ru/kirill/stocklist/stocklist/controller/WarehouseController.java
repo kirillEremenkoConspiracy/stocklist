@@ -19,21 +19,29 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import ru.kirill.stocklist.stocklist.repository.InventoryBalanceRepository;
+import ru.kirill.stocklist.stocklist.domain.InventoryBalance;
+import ru.kirill.stocklist.stocklist.repository.ProductRepository;
+import ru.kirill.stocklist.stocklist.repository.InventoryBalanceRepository;
+import ru.kirill.stocklist.stocklist.domain.Product;
 
 
 @Controller
 public class WarehouseController {
 
+    private record CategoryOption(Long id, String path) {}
     private final InventoryBalanceRepository inventoryBalanceRepository;
     private final WarehouseRepository warehouseRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     public WarehouseController(InventoryBalanceRepository inventoryBalanceRepository,
                                WarehouseRepository warehouseRepository,
-                               CategoryRepository categoryRepository) {
+                               CategoryRepository categoryRepository,
+                               ProductRepository productRepository) {
         this.inventoryBalanceRepository = inventoryBalanceRepository;
         this.warehouseRepository = warehouseRepository;
         this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
     }
 
 
@@ -140,19 +148,9 @@ public class WarehouseController {
         return "redirect:/warehouses/" + id;
     }
 
-    //GET открыть папку
-    @Transactional(readOnly = true)
-    @GetMapping("/warehouses/{wid}/categories/{cid}")
-    public String viewCategory(@PathVariable Long wid,
-                               @PathVariable Long cid,
-                               Model model) {
-        Warehouse warehouse = warehouseRepository.findById(wid)
-                .orElseThrow(() -> new IllegalArgumentException("Warehouse not found: " + wid));
+    private void fillCategoryModel(Long wid, Long cid, Model model, Category category){
+        Warehouse warehouse =warehouseRepository.findById(wid).orElseThrow(() -> new IllegalArgumentException("Warehouse not found: " + wid));
 
-        Category category = categoryRepository.findById(cid)
-                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + cid));
-
-        //папка должна принадлежать этому складу
         if(!category.getWarehouse().getId().equals(wid)){
             throw new IllegalArgumentException("Category " + cid + " is not in warehouse " + wid);
         }
@@ -161,16 +159,81 @@ public class WarehouseController {
         model.addAttribute("warehouse", warehouse);
         model.addAttribute("category", category);
 
-        //показать подпапки в папке
-        model.addAttribute("categories", categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
-
-        model.addAttribute("categoryForm", new CategoryForm());
+        model.addAttribute("categories",
+                categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
 
         model.addAttribute("breadcrumb", buildBreadcrumb(category));
-        //загрузка товаров текущей папки
-        model.addAttribute("items",
-                inventoryBalanceRepository.findAllByCategoryIdOrderByIdDesc(cid));
+
+        model.addAttribute("items", inventoryBalanceRepository.findAllByCategoryIdWithProduct(cid));
+
+        var addCats = categoryRepository.findAllByWarehouseIdOrderByIdAsc(wid);
+        var options = addCats.stream()
+                .map(c -> new CategoryOption(c.getId(),
+                        buildCategoryPath(c))).toList();
+
+        model.addAttribute("categoryOptions", options);
+
+        if(!model.containsAttribute("categoryForm")){
+            model.addAttribute("categoryForm", new CategoryForm());
+        }
+        if(!model.containsAttribute("productCreateForm")){
+            model.addAttribute("productCreateForm", new ProductCreateForm());
+        }
+
+    }
+
+
+    //GET открыть папку
+    @Transactional(readOnly = true)
+    @GetMapping("/warehouses/{wid}/categories/{cid}")
+    public String viewCategory(@PathVariable Long wid,
+                               @PathVariable Long cid,
+                               Model model) {
+        Category category = categoryRepository.findById(cid)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + cid));
+
+        fillCategoryModel(wid, cid, model, category);
         return "category-view";
+    }
+
+    private void fillCategoryPageModel(Long wid, Long cid, Model model){
+        Warehouse warehouse = warehouseRepository.findById(wid)
+                .orElseThrow(() -> new IllegalArgumentException("Warehouse not found: " + wid));
+
+        Category category = categoryRepository.findById(cid)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + cid));
+
+        if(!category.getWarehouse().getId().equals(wid)){
+            throw new IllegalArgumentException("Category " + cid + " is not in warehouse " + wid);
+        }
+
+        model.addAttribute("activePage", "warehouses");
+        model.addAttribute("warehouse", warehouse);
+        model.addAttribute("category", category);
+
+        //подпапки
+        model.addAttribute("categories",
+                categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
+
+        //формы
+        if(!model.containsAttribute("categoryForm")){
+            model.addAttribute("categoryForm", new CategoryForm());
+        }
+        if(!model.containsAttribute("productCreateForm")){
+            model.addAttribute("productCreateForm", new ProductCreateForm());
+        }
+
+        //хлебные крошки
+        model.addAttribute("breadcrumb", buildBreadcrumb(category));
+
+        //товары
+        model.addAttribute("items", inventoryBalanceRepository.findAllByCategoryIdWithProduct(cid));
+
+        //заполняет выпадающий список выбора папки в окошке добавить товар
+        var addCats = categoryRepository.findAllByWarehouseIdOrderByIdAsc(wid);
+        var options = addCats.stream().map(c -> new CategoryOption(c.getId(), buildCategoryPath(c)))
+                .toList();
+        model.addAttribute("categoryOptions", options);
     }
 
     //POST создать подпапку внутри папки
@@ -193,12 +256,8 @@ public class WarehouseController {
 
         //Проверка валидации и возврат страницы с ошибкой
         if (bindingResult.hasErrors()) {
-            model.addAttribute("activePage", "warehouses");
-            model.addAttribute("warehouse", warehouse);
-            model.addAttribute("category", parent);
-            model.addAttribute("categories",
-                    categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
-            model.addAttribute("breadcrumb", buildBreadcrumb(parent));
+            model.addAttribute("categoryForm", form);
+            fillCategoryModel(wid, cid, model, parent);
             return "category-view";
         }
 
@@ -207,12 +266,8 @@ public class WarehouseController {
         //запрещаем дублирование
         if (categoryRepository.existsByWarehouseIdAndParentIdAndNameIgnoreCase(wid, cid, name)) {
             bindingResult.rejectValue("name", "duplicate", "Такая папка уже есть в этом разделе");
-            model.addAttribute("activePage", "warehouses");
-            model.addAttribute("warehouse", warehouse);
-            model.addAttribute("category", parent);
-            model.addAttribute("categories",
-                    categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
-            model.addAttribute("breadcrumb", buildBreadcrumb(parent));
+            model.addAttribute("categoryForm", form);
+            fillCategoryModel(wid, cid, model, parent);
             return "category-view";
         }
 
@@ -222,12 +277,8 @@ public class WarehouseController {
             categoryRepository.save(new Category(warehouse, parent, name));
         } catch (DataIntegrityViolationException e) {
             bindingResult.rejectValue("name", "duplicate", "Такая папка уже есть в этом разделе");
-            model.addAttribute("activePage", "warehouses");
-            model.addAttribute("warehouse", warehouse);
-            model.addAttribute("category", parent);
-            model.addAttribute("categories",
-                    categoryRepository.findByWarehouseIdAndParentIdOrderByNameAsc(wid, cid));
-            model.addAttribute("breadcrumb", buildBreadcrumb(parent));
+            model.addAttribute("categoryForm", form);
+            fillCategoryModel(wid, cid, model, parent);
             return "category-view";
         }
 
@@ -243,5 +294,56 @@ public class WarehouseController {
         }
         Collections.reverse(path);
         return path;
+    }
+
+
+    @Transactional
+    @PostMapping("/warehouses/{wid}/categories/{cid}/items")
+    public String addItem(@PathVariable Long wid,
+                          @PathVariable Long cid,
+                          @Valid @ModelAttribute("productCreateForm") ProductCreateForm form,
+                          BindingResult bindingResult,
+                          Model model) {
+
+        Long targetCategoryId = (form.getCategoryId() != null) ? form.getCategoryId() : cid;
+
+        if (bindingResult.hasErrors()) {
+            //сохраним форму с ошибками и откроем окошко
+            model.addAttribute("productCreateForm", form);
+            model.addAttribute("openProductModal", true);
+            fillCategoryPageModel(wid, targetCategoryId, model);
+            return "category-view";
+        }
+
+        String name = form.getName().trim();
+
+        Product product = productRepository.findByNameIgnoreCase(name).
+                orElseGet(() -> productRepository.save(new Product(name)));
+
+        //СДЕЛАТЬ БОЛЕЕ ЧИТАЕМО В БУДУЩЕМ
+        InventoryBalance balance = inventoryBalanceRepository.findByCategoryIdAndProductId(targetCategoryId, product.getId())
+                .orElseGet(() -> {
+                    var warehouse = warehouseRepository.findById(wid).orElseThrow();
+                    var category = categoryRepository.findById(targetCategoryId).orElseThrow();
+                    return new InventoryBalance(warehouse, category, product, 0);
+                });
+
+        balance.setQty(balance.getQty() + form.getQty());
+        inventoryBalanceRepository.save(balance);
+
+        return "redirect:/warehouses/" + wid + "/categories/" + targetCategoryId;
+    }
+
+    private String buildCategoryPath(Category category) {
+        ArrayList<String> parts = new ArrayList<>();
+        Category cur = category;
+
+        while (cur != null) {
+            parts.add(cur.getName());
+            cur = cur.getParent();
+        }
+
+        Collections.reverse(parts);
+        return String.join(" / ", parts);
     }
 }
