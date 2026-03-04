@@ -75,6 +75,10 @@
           onclick="document.getElementById('newFolderModal').classList.add('is-open')">
     + Добавить папку
   </button>
+  <a class="btn btn-secondary"
+   th:href="@{/warehouses/{wid}/categories/{cid}/edit(wid=${warehouse.id}, cid=${category.id})}">
+  ✎ Настройки папки
+</a>
 </div>
   </div>
 
@@ -122,11 +126,22 @@
           <th style="padding:0 10px;">Остаток</th>
           <th style="padding:0 10px;">Статус</th>
         </tr>
+        <th style="padding:0 10px; width:90px;">Действия</th>
         </thead>
 
         <tbody>
         <tr th:each="it : ${items}"
             style="background:#fff; border:1px solid rgba(0,0,0,.06); border-radius:14px;">
+            <td style="padding:12px 10px; width:90px;">
+  <form method="post"
+        th:action="@{/warehouses/{wid}/categories/{cid}/items/{bid}/delete(wid=${warehouse.id}, cid=${category.id}, bid=${it.id})}"
+        style="display:inline;">
+    <button type="submit" class="btn btn-danger btn-icon"
+            onclick="return confirm('Убрать позицию из этой папки?');">
+      🗑
+    </button>
+  </form>
+</td>
           <!-- Фото заглушка -->
           <td style="padding:12px 10px; width:64px;">
             <div style="width:44px; height:44px; border-radius:12px; background:#eef3ff; display:flex; align-items:center; justify-content:center; font-weight:700; color:#2b4a7a;">

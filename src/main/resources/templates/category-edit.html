@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/shell :: shell('Настройки папки', ~{::content})}">
+<body>
+
+<div th:fragment="content">
+  <div class="page-title">Настройки папки</div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="card-title" th:text="${category.name}">Папка</div>
+      <div class="card-sub" th:text="${'Склад: ' + warehouse.name}">Склад</div>
+
+      <form method="post"
+            th:action="@{/warehouses/{wid}/categories/{cid}(wid=${warehouse.id}, cid=${category.id})}"
+            th:object="${categoryForm}"
+            style="margin-top:14px;">
+
+        <div class="form-row">
+          <label>Название</label>
+          <input type="text" th:field="*{name}">
+          <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="field-error"></div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Сохранить</button>
+          <a class="btn btn-secondary"
+             th:href="@{/warehouses/{wid}/categories/{cid}(wid=${warehouse.id}, cid=${category.id})}">
+            Назад
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  
+  <div class="card danger" style="margin-top:14px;">
+    <div class="card-body">
+      <div class="card-title">Опасная зона</div>
+      <div class="card-sub" style="margin-top:6px;">
+        Подпапок в поддереве: <b th:text="${subtreeSize - 1}">0</b>
+        <span th:if="${hasBalancesInSubtree}">• В поддереве есть остатки</span>
+        <span th:if="${!hasBalancesInSubtree}">• Остатков нет</span>
+      </div>
+
+      <div class="field-error" th:if="${deleteError}" th:text="${deleteError}" style="margin-top:10px;"></div>
+
+      <form method="post"
+            th:action="@{/warehouses/{wid}/categories/{cid}/delete(wid=${warehouse.id}, cid=${category.id})}"
+            style="margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+
+        <div th:if="${hasBalancesInSubtree}" style="min-width:320px;">
+          <div class="card-sub" style="margin-bottom:6px;">Куда перенести остатки (по умолчанию Архив)</div>
+          <select name="moveTargetId"
+                  style="width:100%; padding:12px 14px; border-radius:12px; border:1px solid #f3b4b4; background:#fff7f7;">
+            <option th:if="${archiveId != null}" th:value="${archiveId}">Архив</option>
+<option th:if="${archiveId == null}" value="">Архив (создастся автоматически)</option>
+            <option th:each="opt : ${moveOptions}"
+                    th:value="${opt.id}"
+                    th:text="${opt.path}">
+              Папка
+            </option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-danger"
+                th:onclick="${hasBalancesInSubtree} ? 'return confirm(\\'Остатки будут перенесены. Удалить папку и её пустые подпапки?\\');'
+                            : 'return confirm(\\'Удалить папку и все пустые подпапки?\\');'">
+          Удалить папку
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

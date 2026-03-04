@@ -20,4 +20,16 @@ public interface InventoryBalanceRepository extends JpaRepository<InventoryBalan
        order by b.id desc
        """)
     List<InventoryBalance> findAllByCategoryIdWithProduct(@Param("categoryId") Long categoryId);
+
+    boolean existsByWarehouseId(Long warehouseId);
+
+    boolean existsByCategoryIdIn(List<Long> categoryIds);
+
+    @Query("""
+            select b
+            from InventoryBalance b
+            join fetch b.product
+            where b.category.id in :categoryIds
+            """)
+    List<InventoryBalance> findAllByCategoryIdInWithProduct(@Param("categoryIds") List<Long> categoryIds);
 }
