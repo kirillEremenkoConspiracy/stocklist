@@ -91,4 +91,23 @@ public class WarehouseControllerWebTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/warehouses/" + wid));
     }
+
+
+    //Тест на проверку дубликата папки в одном складе
+    @Test
+    void createRootCategory_duplicate_showsErrorAndStaysOnPage() throws Exception {
+        long wid = 13L;
+        var wh = new Warehouse("Any name", "Any address");
+
+        when(warehouseRepository.findById(wid)).thenReturn(Optional.of(wh));
+
+        when(categoryRepository.existsByWarehouseIdAndParentIsNullAndNameIgnoreCase(wid, "Root QA"))
+                .thenReturn(true);
+
+        mvc.perform(post("/warehouses/{wid}/categories", wid)
+                        .param("name", "Root QA"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("warehouse-view"))
+                .andExpect(model().attributeHasFieldErrors("categoryForm", "name"));;
+    }
 }
